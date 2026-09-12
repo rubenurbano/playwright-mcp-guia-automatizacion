@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playwright MCP · Guía de Automatización y Configuración para LLM</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0a0e1a;
+    --card:#0f172a;
+    --border:#1e3a5f;
+    --accent:#00d4ff;
+    --green:#22c55e;
+    --amber:#f59e0b;
+    --red:#ef4444;
+    --purple:#a855f7;
+    --text:#cbd5e1;
+    --dim:#94a3b8;
+    --white:#f1f5f9;
+  }
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    line-height:1.65;
+    overflow-x:hidden;
+    padding-top:58px;
+    font-size:16px;
+  }
+  /* ---------- PROGRESO ---------- */
+  #progressWrap{
+    position:fixed;top:0;left:0;right:0;height:4px;
+    background:rgba(30,58,95,.5);z-index:1200;
+  }
+  #progressFill{
+    height:100%;width:0%;
+    background:linear-gradient(90deg,#00d4ff,#a855f7,#22c55e);
+    box-shadow:0 0 12px rgba(0,212,255,.7);
+    transition:width .12s linear;
+  }
+  /* ---------- NAVBAR ---------- */
+  nav#navbar{
+    position:fixed;top:4px;left:0;right:0;height:54px;
+    background:rgba(10,14,26,.94);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--border);
+    z-index:1100;
+    display:flex;align-items:center;
+  }
+  .nav-scroll{
+    display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;
+    padding:0 12px;width:100%;height:100%;align-items:center;
+    scrollbar-width:thin;scrollbar-color:#1e3a5f transparent;
+  }
+  .nav-scroll::-webkit-scrollbar{height:4px}
+  .nav-scroll::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:4px}
+  .nav-btn{
+    flex:0 0 auto;
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--dim);
+    padding:8px 14px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+    font-family:inherit;
+    transition:all .25s ease;
+  }
+  .nav-btn:hover{color:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(0,212,255,.25)}
+  .nav-btn.active{
+    background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(168,85,247,.18));
+    color:var(--accent);
+    border-color:var(--accent);
+    box-shadow:0 0 16px rgba(0,212,255,.4);
+  }
+  .nav-btn.credit{color:var(--amber);border-color:rgba(245,158,11,.5)}
+  .nav-btn.credit.active{color:var(--amber);border-color:var(--amber);box-shadow:0 0 16px rgba(245,158,11,.4);background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(168,85,247,.12))}
+  /* ---------- SECCIONES ---------- */
+  .section{
+    display:none;
+    max-width:1120px;
+    margin:0 auto;
+    padding:26px 16px 60px;
+  }
+  .section.active{display:block;animation:fadeUp .45s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  /* ---------- HOME ---------- */
+  .hero-wrap{
+    width:100%;
+    border:1px solid var(--border);
+    border-radius:14px;
+    overflow:hidden;
+    background:#070b14;
+    box-shadow:0 0 40px rgba(0,212,255,.12),0 0 80px rgba(168,85,247,.06);
+    margin-bottom:26px;
+  }
+  .hero-svg{display:block;width:100%;height:auto;aspect-ratio:16/9}
+  .badge-top{
+    display:inline-flex;align-items:center;gap:8px;
+    background:linear-gradient(135deg,rgba(0,212,255,.14),rgba(168,85,247,.14));
+    border:1px solid var(--border);
+    color:var(--accent);
+    font-size:12px;font-weight:700;letter-spacing:2px;
+    padding:7px 16px;border-radius:999px;margin-bottom:16px;text-transform:uppercase;
+  }
+  .badge-top .dot{
+    width:8px;height:8px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 10px var(--green);animation:pulseDot 1.8s infinite;
+  }
+  @keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+  h1.main-title{
+    font-size:clamp(26px,5vw,44px);
+    line-height:1.15;
+    color:var(--white);
+    font-weight:800;
+    letter-spacing:-.5px;
+    margin-bottom:12px;
+  }
+  h1.main-title span{
+    background:linear-gradient(90deg,#00d4ff,#a855f7,#22c55e);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;
+  }
+  .subtitle{
+    font-size:clamp(15px,2.2vw,19px);
+    color:var(--dim);
+    margin-bottom:18px;
+    max-width:820px;
+  }
+  .quote-box{
+    border-left:3px solid var(--accent);
+    background:linear-gradient(90deg,rgba(0,212,255,.07),transparent);
+    padding:14px 18px;
+    border-radius:0 10px 10px 0;
+    font-style:italic;
+    color:#bae6fd;
+    margin:22px 0;
+    font-size:15px;
+  }
+  .metrics{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:12px;margin:26px 0;
+  }
+  .metric{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px 14px;
+    text-align:center;
+    transition:.3s;
+  }
+  .metric:hover{border-color:var(--accent);box-shadow:0 0 22px rgba(0,212,255,.18);transform:translateY(-3px)}
+  .metric .num{
+    font-size:26px;font-weight:800;color:var(--accent);
+    display:block;line-height:1.1;
+  }
+  .metric .lbl{font-size:12px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-top:4px;display:block}
+  .date-strip{
+    display:flex;flex-wrap:wrap;gap:10px;
+    margin-top:8px;
+  }
+  .date-chip{
+    background:var(--card);border:1px solid var(--border);border-radius:8px;
+    padding:8px 14px;font-size:13px;color:var(--dim);
+  }
+  .date-chip strong{color:var(--accent);font-weight:700}
+  /* ---------- TIPOGRAFÍA DE CONTENIDO ---------- */
+  .section-head{
+    display:flex;align-items:center;gap:14px;
+    margin-bottom:22px;
+    padding-bottom:16px;
+    border-bottom:1px solid var(--border);
+  }
+  .section-head .icon{
+    flex:0 0 auto;
+    width:48px;height:48px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;
+    background:linear-gradient(135deg,rgba(0,212,255,.16),rgba(168,85,247,.16));
+    border:1px solid var(--border);
+  }
+  .section-head h2{
+    font-size:clamp(20px,3.4vw,28px);
+    color:var(--white);font-weight:700;line-height:1.25;
+  }
+  .section-head .eyebrow{
+    display:block;font-size:11px;letter-spacing:2.5px;
+    color:var(--accent);text-transform:uppercase;font-weight:700;margin-bottom:2px;
+  }
+  h3.sub{
+    font-size:clamp(17px,2.6vw,21px);
+    color:var(--white);
+    margin:28px 0 12px;
+    font-weight:700;
+    display:flex;align-items:center;gap:9px;
+  }
+  h3.sub::before{
+    content:"";width:4px;height:20px;border-radius:2px;
+    background:linear-gradient(180deg,#00d4ff,#a855f7);
+    display:inline-block;flex:0 0 auto;
+  }
+  h4.subsub{
+    font-size:16px;color:var(--accent);font-weight:700;
+    margin:20px 0 8px;letter-spacing:.3px;
+  }
+  p{margin-bottom:14px;color:var(--text)}
+  strong{color:var(--white)}
+  em{color:#bae6fd}
+  /* ---------- CARDS ---------- */
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px;
+    margin-bottom:16px;
+    transition:.3s;
+  }
+  .card:hover{border-color:rgba(0,212,255,.45);box-shadow:0 0 24px rgba(0,212,255,.10)}
+  .card h4{color:var(--white);font-size:16px;margin-bottom:8px;font-weight:700}
+  .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  /* ---------- CALLOUTS ---------- */
+  .callout{
+    border-radius:10px;
+    padding:14px 16px 14px 46px;
+    margin:16px 0;
+    position:relative;
+    font-size:14.5px;
+    border:1px solid;
+    line-height:1.6;
+  }
+  .callout::before{
+    position:absolute;left:14px;top:13px;font-size:18px;
+  }
+  .callout.info{background:rgba(0,212,255,.07);border-color:rgba(0,212,255,.35);color:#bae6fd}
+  .callout.info::before{content:"ℹ️"}
+  .callout.example{background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.35);color:#bbf7d0}
+  .callout.example::before{content:"🧪"}
+  .callout.warn{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.4);color:#fde68a}
+  .callout.warn::before{content:"⚠️"}
+  .callout.error{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.4);color:#fecaca}
+  .callout.error::before{content:"⛔"}
+  .callout.purple{background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.4);color:#e9d5ff}
+  .callout.purple::before{content:"💡"}
+  /* ---------- CODE ---------- */
+  pre{
+    background:#060a12;
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:8px;
+    padding:14px;
+    overflow-x:auto;
+    margin:14px 0;
+    font-size:13px;
+    line-height:1.6;
+    -webkit-overflow-scrolling:touch;
+  }
+  pre code,code{
+    font-family:'Consolas','Monaco','Courier New',monospace;
+    color:#7dd3fc;
+  }
+  p code,li code,td code{
+    background:#060a12;
+    border:1px solid var(--border);
+    border-radius:5px;
+    padding:2px 7px;
+    font-size:13px;
+    color:#7dd3fc;
+    word-break:break-word;
+  }
+  /* ---------- TABLAS ---------- */
+  .table-wrap{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    border:1px solid var(--border);
+    border-radius:12px;
+    margin:16px 0;
+    background:var(--card);
+  }
+  table{width:100%;border-collapse:collapse;min-width:520px;font-size:14px}
+  thead th{
+    background:linear-gradient(135deg,rgba(0,212,255,.12),rgba(168,85,247,.10));
+    color:var(--accent);
+    text-align:left;
+    padding:12px 14px;
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:12px 14px;
+    border-bottom:1px solid rgba(30,58,95,.55);
+    color:var(--text);
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:rgba(0,212,255,.045)}
+  /* ---------- LISTAS ---------- */
+  ul.list,ol.list{margin:12px 0 16px 20px;color:var(--text)}
+  ul.list li,ol.list li{margin-bottom:9px;padding-left:4px}
+  ul.list li::marker{color:var(--accent)}
+  ol.list li::marker{color:var(--accent);font-weight:700}
+  /* ---------- CHECKLIST ---------- */
+  .checklist{list-style:none;margin:14px 0}
+  .checklist li{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px 14px 12px 44px;
+    margin-bottom:10px;
+    position:relative;
+    font-size:14.5px;
+  }
+  .checklist li::before{
+    content:"✓";
+    position:absolute;left:14px;top:12px;
+    width:20px;height:20px;line-height:20px;text-align:center;
+    border-radius:6px;
+    background:rgba(34,197,94,.15);
+    border:1px solid rgba(34,197,94,.5);
+    color:var(--green);font-weight:800;font-size:12px;
+  }
+  /* ---------- PASOS ---------- */
+  .steps{counter-reset:st;margin:16px 0}
+  .step{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:0 12px 12px 0;
+    padding:14px 16px 14px 56px;
+    margin-bottom:12px;
+    position:relative;
+    counter-increment:st;
+    font-size:14.5px;
+  }
+  .step::before{
+    content:counter(st);
+    position:absolute;left:14px;top:14px;
+    width:28px;height:28px;line-height:26px;text-align:center;
+    border-radius:8px;
+    background:linear-gradient(135deg,rgba(0,212,255,.2),rgba(168,85,247,.2));
+    border:1px solid var(--border);
+    color:var(--accent);font-weight:800;font-size:13px;
+  }
+  .step strong{display:block;color:var(--white);margin-bottom:4px}
+  /* ---------- CHIPS ---------- */
+  .chip{
+    display:inline-block;
+    background:rgba(0,212,255,.1);
+    border:1px solid rgba(0,212,255,.4);
+    color:var(--accent);
+    font-size:11.5px;font-weight:700;letter-spacing:1px;
+    padding:3px 10px;border-radius:999px;margin:2px 4px 2px 0;
+    text-transform:uppercase;
+  }
+  .chip.green{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.45);color:var(--green)}
+  .chip.amber{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.45);color:var(--amber)}
+  .chip.red{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.45);color:var(--red)}
+  .chip.purple{background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.45);color:var(--purple)}
+  /* ---------- ACORDEÓN ---------- */
+  .acc{
+    border:1px solid var(--border);
+    border-radius:10px;
+    margin-bottom:10px;
+    overflow:hidden;
+    background:var(--card);
+  }
+  .acc-head{
+    width:100%;
+    background:transparent;
+    border:none;
+    color:var(--white);
+    font-family:inherit;
+    font-size:14.5px;
+    font-weight:700;
+    text-align:left;
+    padding:14px 16px;
+    cursor:pointer;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    transition:.25s;
+  }
+  .acc-head:hover{background:rgba(0,212,255,.05);color:var(--accent)}
+  .acc-head .arrow{color:var(--accent);transition:transform .3s;font-size:13px}
+  .acc.open .acc-head .arrow{transform:rotate(90deg)}
+  .acc-body{
+    max-height:0;overflow:hidden;
+    transition:max-height .35s ease;
+    padding:0 16px;
+    font-size:14.5px;
+  }
+  .acc.open .acc-body{max-height:900px;padding:0 16px 16px}
+  /* ---------- CRÉDITOS ---------- */
+  .credit-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:24px 20px;
+    text-align:center;
+    max-width:720px;
+    margin:0 auto;
+  }
+  .credit-card .author{
+    font-size:clamp(22px,4vw,30px);
+    font-weight:800;
+    background:linear-gradient(90deg,#00d4ff,#a855f7,#22c55e);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;
+    margin:16px 0 6px;
+  }
+  .credit-card .role{color:var(--dim);font-size:14px;margin-bottom:18px}
+  .credit-meta{
+    display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:18px 0;
+  }
+  .credit-meta div{
+    background:rgba(0,212,255,.06);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 16px;
+    font-size:13.5px;
+    color:var(--text);
+  }
+  .credit-meta strong{color:var(--accent)}
+  .latin{
+    font-style:italic;
+    color:var(--amber);
+    font-size:15px;
+    margin-top:18px;
+    letter-spacing:.5px;
+  }
+  /* ---------- BOTÓN ARRIBA ---------- */
+  #backTop{
+    position:fixed;
+    right:16px;bottom:16px;
+    width:46px;height:46px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#00d4ff,#a855f7);
+    border:none;color:#04121f;
+    font-size:20px;font-weight:800;
+    cursor:pointer;
+    display:none;
+    z-index:1050;
+    box-shadow:0 0 22px rgba(0,212,255,.5);
+    transition:.3s;
+  }
+  #backTop.show{display:block;animation:fadeUp .3s}
+  #backTop:hover{transform:translateY(-3px) scale(1.06)}
+  /* ---------- FOOTER ---------- */
+  footer{
+    border-top:1px solid var(--border);
+    background:linear-gradient(180deg,transparent,rgba(0,212,255,.04));
+    padding:24px 16px 34px;
+    text-align:center;
+    font-size:13.5px;
+    color:var(--dim);
+    line-height:2;
+  }
+  footer .latin-foot{color:var(--amber);font-style:italic;margin-top:8px;font-size:14px}
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:640px){
+    body{font-size:15px;padding-top:54px}
+    .section{padding:18px 12px 50px}
+    .section-head{gap:10px}
+    .section-head .icon{width:40px;height:40px;font-size:18px;border-radius:10px}
+    .card{padding:15px}
+    .step{padding:13px 13px 13px 48px}
+    .step::before{left:11px;top:12px;width:25px;height:25px;line-height:23px;font-size:12px}
+    .callout{padding:12px 13px 12px 40px;font-size:14px}
+    .callout::before{left:11px;top:11px;font-size:16px}
+    pre{font-size:12px;padding:11px}
+    table{font-size:13px;min-width:460px}
+    thead th,tbody td{padding:9px 10px}
+    .nav-btn{padding:7px 12px;font-size:12px}
+    .metric .num{font-size:22px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important}
+    html{scroll-behavior:auto}
+    .hero-svg *{animation-play-state:paused !important}
+  }
+</style>
+</head>
+<body>
+
+<div id="progressWrap"><div id="progressFill"></div></div>
+
+<nav id="navbar">
+  <div class="nav-scroll" id="navScroll">
+    <button class="nav-btn active" data-target="home">🏠 Inicio</button>
+    <button class="nav-btn" data-target="intro">1 · Introducción</button>
+    <button class="nav-btn" data-target="dilema">2 · MCP vs CLI</button>
+    <button class="nav-btn" data-target="requisitos">3 · Requisitos</button>
+    <button class="nav-btn" data-target="instalacion">4 · Instalación</button>
+    <button class="nav-btn" data-target="config">5 · Config. Avanzada</button>
+    <button class="nav-btn" data-target="arsenal">6 · Herramientas</button>
+    <button class="nav-btn" data-target="capacidades">7 · Red y Simulación</button>
+    <button class="nav-btn" data-target="seguridad">8 · Seguridad</button>
+    <button class="nav-btn" data-target="practica">9 · Práctica Real</button>
+    <button class="nav-btn" data-target="resumen">10 · Resumen</button>
+    <button class="nav-btn" data-target="fuentes">📚 Fuentes</button>
+    <button class="nav-btn credit" data-target="creditos">✦ Créditos</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ================= HOME ================= -->
+<section id="home" class="section active">
+
+  <div class="hero-wrap" id="svgHome"></div>
+
+  <div class="badge-top"><span class="dot"></span> Guía Técnica · Automatización con IA</div>
+
+  <h1 class="main-title">Playwright <span>MCP</span><br>Guía de Automatización y Configuración para LLM</h1>
+
+  <p class="subtitle">
+    Del cerebro que razona al agente que actúa: cómo dotar a un Modelo de Lenguaje de Gran Escala
+    de "ojos" para observar la web y "manos" para operar en ella, mediante el Model Context Protocol.
+  </p>
+
+  <div class="quote-box">
+    "Si no puedes explicarlo de forma sencilla, es que no lo entiendes lo suficientemente bien."
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><span class="num">10</span><span class="lbl">Secciones</span></div>
+    <div class="metric"><span class="num">4</span><span class="lbl">Casos de uso</span></div>
+    <div class="metric"><span class="num">3</span><span class="lbl">Vías de instalación</span></div>
+    <div class="metric"><span class="num">4</span><span class="lbl">Flags avanzados</span></div>
+    <div class="metric"><span class="num">3</span><span class="lbl">Errores críticos</span></div>
+  </div>
+
+  <div class="date-strip">
+    <div class="date-chip">📅 Fecha: <strong>12/09/2026</strong></div>
+    <div class="date-chip">🕒 Hora: <strong>08:04:15</strong></div>
+    <div class="date-chip">✍️ Créditos: <strong>Rubén Sbarsky</strong></div>
+  </div>
+
+  <div class="callout info" style="margin-top:22px">
+    <strong>Cómo usar este tutorial:</strong> utilice la barra de navegación superior para recorrer las diez
+    secciones de la guía original. Cada sección conserva íntegramente la información del documento fuente:
+    definiciones, tablas comparativas, comandos, banderas de configuración, casos de uso, errores comunes,
+    prompts de práctica y glosario. La barra de progreso superior indica su avance de lectura.
+  </div>
+
+</section>
+
+<!-- ================= 1. INTRODUCCIÓN ================= -->
+<section id="intro" class="section">
+  <div class="section-head">
+    <div class="icon">🧠</div>
+    <div>
+      <span class="eyebrow">Sección 01</span>
+      <h2>Introducción: ¿Qué es Playwright MCP y por qué es el futuro de la navegación con IA?</h2>
+    </div>
+  </div>
+
+  <p>
+    En el panorama actual de la inteligencia artificial, los Modelos de Lenguaje de Gran Escala (LLM) han
+    demostrado una capacidad asombrosa para razonar. Sin embargo, <strong>un cerebro sin cuerpo tiene límites</strong>.
+    Para que la IA sea verdaderamente transformadora, necesita "ojos" para observar la web y "manos" para actuar
+    en ella. Dotar a un modelo de la capacidad de interactuar con el ecosistema digital de forma autónoma es la
+    frontera estratégica que separa a un asistente que solo habla de un agente que realmente resuelve.
+  </p>
+
+  <h3 class="sub">Definición sin jerga</h3>
+  <div class="callout purple">
+    Piense en <strong>Playwright MCP (Model Context Protocol)</strong> como un <strong>traductor universal de alto
+    rendimiento</strong>. Por un lado, tenemos el "cerebro" de la IA, que procesa lenguaje; por otro, un navegador
+    web que entiende de botones y código. <strong>MCP es el conducto</strong> que permite que la IA "lea" la estructura
+    de una página y "toque" sus elementos sin necesidad de que un humano traduzca cada paso.
+  </div>
+
+  <p>
+    Aprender esta tecnología hoy es una <strong>inversión en productividad</strong>. Ya no se trata de escribir scripts
+    rígidos; se trata de delegar objetivos a agentes que pueden navegar, decidir y corregirse a sí mismos en
+    tiempo real.
+  </p>
+
+  <h3 class="sub">Casos de uso reales</h3>
+  <div class="grid-2">
+    <div class="card">
+      <h4>✈️ Reservas y comparativas</h4>
+      <p>Agentes que navegan por aerolíneas o sitios de hoteles para encontrar y ejecutar la mejor opción.</p>
+    </div>
+    <div class="card">
+      <h4>📡 Monitorización proactiva</h4>
+      <p>Vigilancia de precios o cambios en sitios de competencia con reportes estructurados.</p>
+    </div>
+    <div class="card">
+      <h4>🩹 Pruebas "self-healing" (autorreparables)</h4>
+      <p>Sistemas de software que detectan si un botón cambió de lugar y ajustan su lógica de navegación automáticamente.</p>
+    </div>
+    <div class="card">
+      <h4>⏳ Flujos de larga duración</h4>
+      <p>Procesos complejos que requieren mantener la sesión del navegador abierta durante horas para completar una tarea administrativa.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2. DILEMA ================= -->
+<section id="dilema" class="section">
+  <div class="section-head">
+    <div class="icon">⚖️</div>
+    <div>
+      <span class="eyebrow">Sección 02</span>
+      <h2>El gran dilema: ¿Playwright MCP o Playwright CLI?</h2>
+    </div>
+  </div>
+
+  <p>
+    Elegir la herramienta adecuada es el primer paso hacia el éxito. Una elección incorrecta puede agotar los
+    <strong>"tokens"</strong> de su IA —el combustible que define su costo y memoria—, haciendo que el modelo se
+    vuelva lento o "olvidadizo".
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Criterio</th>
+          <th>Playwright MCP</th>
+          <th>Playwright CLI (+ Skills)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Enfoque de comunicación</strong></td>
+          <td>Interfaz estructurada y continua.</td>
+          <td>Comandos concisos y directos.</td>
+        </tr>
+        <tr>
+          <td><strong>Eficiencia de tokens</strong></td>
+          <td>Menor (envía esquemas y árboles ricos).</td>
+          <td>Alta (evita cargar esquemas pesados).</td>
+        </tr>
+        <tr>
+          <td><strong>Persistencia</strong></td>
+          <td>Excelente para estados y sesiones largas.</td>
+          <td>Diseñado para ejecuciones puntuales.</td>
+        </tr>
+        <tr>
+          <td><strong>Perfil ideal</strong></td>
+          <td>Agentes especializados, flujos "self-healing".</td>
+          <td>Coding Agents (GitHub Copilot, Cursor).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub">La capa del "So What?"</h3>
+  <div class="callout warn">
+    Si usted es un desarrollador usando <strong>GitHub Copilot</strong> o agentes de código de alto rendimiento, el
+    <strong>Playwright CLI</strong> es su mejor aliado porque ahorra espacio en la "memoria" (contexto) para el código
+    fuente. En cambio, si está construyendo un <strong>agente autónomo</strong> cuya única misión es navegar y extraer
+    datos complejos, <strong>MCP es superior</strong> por su capacidad de introspección profunda y razonamiento iterativo.
+  </div>
+
+  <div class="grid-2">
+    <div class="card" style="border-left:3px solid var(--accent)">
+      <h4><span class="chip">MCP</span> Cuándo elegirlo</h4>
+      <ul class="list">
+        <li>Agentes especializados de navegación.</li>
+        <li>Flujos autorreparables ("self-healing").</li>
+        <li>Sesiones largas con estado persistente.</li>
+        <li>Extracción profunda de datos estructurados.</li>
+      </ul>
+    </div>
+    <div class="card" style="border-left:3px solid var(--green)">
+      <h4><span class="chip green">CLI</span> Cuándo elegirlo</h4>
+      <ul class="list">
+        <li>Desarrollo con GitHub Copilot o Cursor.</li>
+        <li>Ejecuciones puntuales y comandos directos.</li>
+        <li>Optimización máxima de tokens de contexto.</li>
+        <li>Tareas donde el código fuente es lo prioritario.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. REQUISITOS ================= -->
+<section id="requisitos" class="section">
+  <div class="section-head">
+    <div class="icon">🧱</div>
+    <div>
+      <span class="eyebrow">Sección 03</span>
+      <h2>Cimientos del éxito: requisitos previos y entorno</h2>
+    </div>
+  </div>
+
+  <p>
+    Un entorno de trabajo limpio es la diferencia entre una automatización fluida y una tarde perdida depurando
+    errores de instalación.
+  </p>
+
+  <h3 class="sub">Lista de comprobación (Checklist)</h3>
+  <ul class="checklist">
+    <li>
+      <strong>Node.js 18 o superior:</strong> es el "motor" de JavaScript. Piense en él como el traductor que
+      permite que el lenguaje de la web se ejecute directamente en su sistema operativo, fuera de una pestaña
+      del navegador.
+    </li>
+    <li>
+      <strong>Clientes compatibles:</strong> el lugar donde "vive" su IA (Claude Desktop, Cursor, VS Code).
+    </li>
+    <li>
+      <strong>Conexión a Internet:</strong> necesaria para que el comando <code>npx</code> descargue los paquetes
+      actualizados.
+    </li>
+  </ul>
+
+  <div class="callout info">
+    <strong>Comprobación rápida:</strong> antes de continuar, verifique su versión de Node con
+    <code>node -v</code>. Si el resultado es <code>v18.x</code> o superior, está listo para el siguiente paso.
+  </div>
+</section>
+
+<!-- ================= 4. INSTALACIÓN ================= -->
+<section id="instalacion" class="section">
+  <div class="section-head">
+    <div class="icon">⚙️</div>
+    <div>
+      <span class="eyebrow">Sección 04</span>
+      <h2>Instalación paso a paso: configurando tu primer servidor</h2>
+    </div>
+  </div>
+
+  <h3 class="sub">A. Claude Desktop (el método oficial)</h3>
+  <p>
+    Claude Desktop requiere que edite un archivo de configuración específico dependiendo de su sistema:
+  </p>
+  <div class="grid-2">
+    <div class="card">
+      <h4>🍎 macOS</h4>
+      <pre><code>~/Library/Application Support/Claude/claude_desktop_config.json</code></pre>
+    </div>
+    <div class="card">
+      <h4>🪟 Windows</h4>
+      <pre><code>%APPDATA%\Claude\claude_desktop_config.json</code></pre>
+    </div>
+  </div>
+
+  <p>Añada este bloque dentro del objeto <code>mcpServers</code>:</p>
+  <pre><code>{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    }
+  }
+}</code></pre>
+
+  <h3 class="sub">B. Cursor &amp; VS Code</h3>
+  <p>Ideal para entusiastas del código:</p>
+  <div class="steps">
+    <div class="step"><strong>Paso 1</strong> Abra los ajustes de MCP en el editor.</div>
+    <div class="step"><strong>Paso 2</strong> Añada un nuevo servidor con el nombre <code>playwright</code>.</div>
+    <div class="step"><strong>Paso 3</strong> Use el comando: <code>npx @playwright/mcp@latest</code>.</div>
+  </div>
+
+  <h3 class="sub">C. Docker (entorno robusto y aislado)</h3>
+  <p>
+    Para evitar conflictos con su sistema principal, use este comando que expone el servidor en el
+    <strong>puerto 8931</strong>:
+  </p>
+  <pre><code>docker run -d -i --rm --init -p 8931:8931 --entrypoint node mcr.microsoft.com/playwright/mcp /app/cli.js --headless --browser chromium --port 8931 --host 0.0.0.0</code></pre>
+
+  <div class="callout example">
+    <strong>¿Por qué <code>npx</code>?</strong> Usamos <code>npx</code> porque descarga y ejecuta la última versión de
+    Playwright MCP en el momento, garantizando que siempre tenga las mejoras de seguridad más recientes sin
+    "ensuciar" su disco permanentemente.
+  </div>
+
+  <div class="callout warn">
+    <strong>Recuerde:</strong> tras editar el archivo de configuración de Claude Desktop es necesario
+    <strong>reiniciar la aplicación</strong> para que el servidor MCP se cargue correctamente.
+  </div>
+</section>
+
+<!-- ================= 5. CONFIG AVANZADA ================= -->
+<section id="config" class="section">
+  <div class="section-head">
+    <div class="icon">🚀</div>
+    <div>
+      <span class="eyebrow">Sección 05</span>
+      <h2>Configuración avanzada: el modo "Power User"</h2>
+    </div>
+  </div>
+
+  <p>
+    Los argumentos adicionales permiten que el navegador sea más eficiente y difícil de detectar.
+  </p>
+
+  <div class="grid-2">
+    <div class="card" style="border-left:3px solid var(--accent)">
+      <h4><code>--headless</code></h4>
+      <p>Si lo omite, verá aparecer una ventana de navegador. Activarlo lo hace <strong>invisible y más rápido</strong>.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--green)">
+      <h4><code>--mobile</code></h4>
+      <p><strong>Tip de ahorro de tokens.</strong> Emula un dispositivo móvil. Las páginas móviles son más ligeras y el
+      "árbol" de datos que se envía a la IA es más pequeño, ahorrando dinero y memoria.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--amber)">
+      <h4><code>--user-data-dir</code></h4>
+      <p>Funciona como una <strong>maleta de viaje</strong>. Aquí el navegador guarda sus cookies y logins. Si no lo usa,
+      la IA tendrá que iniciar sesión en cada nueva tarea.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--red)">
+      <h4><code>--ignore-https-errors</code></h4>
+      <p><strong>Vital</strong> para navegar en sitios de desarrollo o con certificados antiguos sin que el proceso se
+      detenga.</p>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Argumento</th><th>Efecto</th><th>Beneficio principal</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>--headless</code></td><td>Navegador sin ventana visible.</td><td>Velocidad y discreción.</td></tr>
+        <tr><td><code>--mobile</code></td><td>Emula un dispositivo móvil.</td><td>Ahorro de tokens y de memoria.</td></tr>
+        <tr><td><code>--user-data-dir</code></td><td>Directorio de perfil persistente.</td><td>Cookies y sesiones conservadas.</td></tr>
+        <tr><td><code>--ignore-https-errors</code></td><td>Ignora errores de certificado.</td><td>Continuidad en entornos de desarrollo.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout purple">
+    <strong>Estrategia recomendada:</strong> combine <code>--headless</code> con <code>--mobile</code> para obtener el
+    máximo ahorro de tokens en tareas de extracción de datos de larga duración.
+  </div>
+</section>
+
+<!-- ================= 6. ARSENAL ================= -->
+<section id="arsenal" class="section">
+  <div class="section-head">
+    <div class="icon">🧰</div>
+    <div>
+      <span class="eyebrow">Sección 06</span>
+      <h2>El arsenal de herramientas: interacción inteligente</h2>
+    </div>
+  </div>
+
+  <p>
+    A diferencia de los humanos, que vemos píxeles, la IA utiliza el <strong>Árbol de Accesibilidad</strong>. Es una
+    versión esquemática de la web que describe qué es un "botón" o un "enlace" mediante texto.
+  </p>
+
+  <h3 class="sub">Herramientas clave</h3>
+
+  <div class="acc" id="acc1">
+    <button class="acc-head" data-acc="acc1">
+      <span><code>browser_navigate</code> — ir a una dirección</span>
+      <span class="arrow">▶</span>
+    </button>
+    <div class="acc-body">
+      <p>Es el comando para ir a una dirección. Constituye el punto de entrada de cualquier flujo de navegación
+      automatizada: sin él, el agente no puede posicionarse sobre la página objetivo.</p>
+    </div>
+  </div>
+
+  <div class="acc" id="acc2">
+    <button class="acc-head" data-acc="acc2">
+      <span><code>browser_snapshot</code> — la joya de la corona</span>
+      <span class="arrow">▶</span>
+    </button>
+    <div class="acc-body">
+      <p>
+        A diferencia de una captura de pantalla (que la IA puede malinterpretar), el <strong>snapshot es determinista</strong>.
+        Entrega <strong>datos estructurados puros</strong> que el modelo puede razonar sin ambigüedad.
+      </p>
+      <div class="callout info" style="margin-top:10px">
+        <strong>Snapshot &gt; Screenshot:</strong> los datos estructurados son el lenguaje nativo de la IA.
+      </div>
+    </div>
+  </div>
+
+  <div class="acc" id="acc3">
+    <button class="acc-head" data-acc="acc3">
+      <span><code>browser_type</code> — escribir texto</span>
+      <span class="arrow">▶</span>
+    </button>
+    <div class="acc-body">
+      <p>
+        Permite escribir. Use el argumento <code>slowly: true</code> para <strong>simular un humano</strong> y evitar
+        bloqueos por parte de los sistemas anti-bot.
+      </p>
+    </div>
+  </div>
+
+  <h3 class="sub">Comparativa rápida</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Herramienta</th><th>Función</th><th>Consejo clave</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>browser_navigate</code></td>
+          <td>Navegar a una URL.</td>
+          <td>Primer paso obligatorio de cualquier flujo.</td>
+        </tr>
+        <tr>
+          <td><code>browser_snapshot</code></td>
+          <td>Obtener el árbol de accesibilidad estructurado.</td>
+          <td>Determinista: preferible siempre a una captura.</td>
+        </tr>
+        <tr>
+          <td><code>browser_type</code></td>
+          <td>Introducir texto en campos.</td>
+          <td>Usar <code>slowly: true</code> para evitar bloqueos.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 7. CAPACIDADES ================= -->
+<section id="capacidades" class="section">
+  <div class="section-head">
+    <div class="icon">🛰️</div>
+    <div>
+      <span class="eyebrow">Sección 07</span>
+      <h2>Capacidades especiales: red y simulación</h2>
+    </div>
+  </div>
+
+  <p>
+    Algunas funciones requieren <strong>permisos adicionales</strong> usando el argumento <code>--caps</code>.
+  </p>
+
+  <div class="grid-2">
+    <div class="card" style="border-left:3px solid var(--purple)">
+      <h4>🌐 Network &amp; Mocking</h4>
+      <p>
+        Mediante <code>browser_route</code>, puede <strong>"engañar" a una página web</strong>. Por ejemplo, puede
+        interceptar una petición y devolver un <code>status: 200</code> con un <code>body</code> de JSON falso para
+        probar cómo reacciona un sitio <strong>sin tocar el servidor real</strong>.
+      </p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--green)">
+      <h4>💾 Storage</h4>
+      <p>
+        Con <code>browser_set_storage_state</code>, puede cargar un archivo JSON con sesiones previas,
+        <strong>saltándose muros de pago o procesos de login en segundos</strong>.
+      </p>
+    </div>
+  </div>
+
+  <div class="callout example">
+    <strong>Ejemplo de uso combinado:</strong> cargue un estado de almacenamiento previo con
+    <code>browser_set_storage_state</code> y, a continuación, intercepte con <code>browser_route</code> la llamada
+    de datos para devolver un JSON de prueba. El agente podrá así validar todo el flujo sin depender del
+    backend real.
+  </div>
+</section>
+
+<!-- ================= 8. SEGURIDAD ================= -->
+<section id="seguridad" class="section">
+  <div class="section-head">
+    <div class="icon">🛡️</div>
+    <div>
+      <span class="eyebrow">Sección 08</span>
+      <h2>Seguridad y errores comunes</h2>
+    </div>
+  </div>
+
+  <h3 class="sub">Conflicto de clientes concurrentes</h3>
+  <div class="callout error">
+    Uno de los errores más frecuentes ocurre cuando <strong>dos clientes MCP intentan usar el mismo
+    <code>--user-data-dir</code> simultáneamente</strong>. Playwright bloqueará el acceso.
+    <br><br>
+    <strong>Solución:</strong> use el argumento <code>--isolated</code> para sesiones temporales o carpetas de perfil
+    distintas para cada tarea.
+  </div>
+
+  <h3 class="sub">Tabla de errores</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Error</th><th>Causa</th><th>Solución</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="chip red">Instance locked</span></td>
+          <td>Dos clientes usando el mismo perfil.</td>
+          <td>Use <code>--isolated</code> o cambie la ruta del perfil.</td>
+        </tr>
+        <tr>
+          <td><span class="chip amber">Timeout</span></td>
+          <td>La página es muy pesada.</td>
+          <td>Aumente el tiempo con <code>--timeout-navigation</code>.</td>
+        </tr>
+        <tr>
+          <td><span class="chip red">Selector not found</span></td>
+          <td>El snapshot cambió.</td>
+          <td>Pida a la IA que tome un nuevo <code>browser_snapshot</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <strong>Regla de oro:</strong> ante un error de selector, no reinicie todo el flujo. Solicite un nuevo
+    <code>browser_snapshot</code>: el árbol de accesibilidad se habrá actualizado y la IA podrá localizar de nuevo
+    el elemento.
+  </div>
+</section>
+
+<!-- ================= 9. PRÁCTICA ================= -->
+<section id="practica" class="section">
+  <div class="section-head">
+    <div class="icon">🎯</div>
+    <div>
+      <span class="eyebrow">Sección 09</span>
+      <h2>Práctica real: prompts y retos</h2>
+    </div>
+  </div>
+
+  <p>
+    Copie estos prompts en Claude o Cursor una vez configurado el servidor:
+  </p>
+
+  <h3 class="sub">Prompt 1 · Extracción</h3>
+  <div class="card" style="border-left:3px solid var(--accent)">
+    <p style="margin-bottom:0">
+      "Navega a la sección de tecnología de Amazon, busca discos SSD de 1TB y hazme una tabla comparativa con
+      nombre, precio y valoración media usando snapshots".
+    </p>
+  </div>
+
+  <h3 class="sub">Prompt 2 · Utilidad</h3>
+  <div class="card" style="border-left:3px solid var(--green)">
+    <p style="margin-bottom:0">
+      "Ve a Wikipedia, busca 'Model Context Protocol' y genera un archivo PDF con el contenido".
+    </p>
+  </div>
+
+  <h3 class="sub">Reto avanzado</h3>
+  <p>Configure su servidor con un archivo de estado previo:</p>
+  <div class="steps">
+    <div class="step">
+      <strong>Paso 1</strong>
+      Use <code>browser_storage_state</code> para guardar su sesión actual en un archivo llamado
+      <code>mi_sesion.json</code>.
+    </div>
+    <div class="step">
+      <strong>Paso 2</strong>
+      Reinicie el servidor usando <code>--storage-state mi_sesion.json</code> y pida a la IA que realice una acción
+      dentro de su cuenta sin volver a loguearse.
+    </div>
+  </div>
+
+  <div class="callout purple">
+    <strong>Objetivo del reto:</strong> comprender en la práctica cómo la persistencia de estado elimina la fricción
+    del login repetido, uno de los mayores consumidores de tokens y de tiempo en flujos de larga duración.
+  </div>
+</section>
+
+<!-- ================= 10. RESUMEN ================= -->
+<section id="resumen" class="section">
+  <div class="section-head">
+    <div class="icon">🏁</div>
+    <div>
+      <span class="eyebrow">Sección 10</span>
+      <h2>Final del viaje: resumen y glosario</h2>
+    </div>
+  </div>
+
+  <p>
+    Ha pasado de ser un espectador de la IA a ser un <strong>arquitecto de agentes autónomos</strong>. Ahora su IA
+    no solo "sabe", sino que <strong>"hace"</strong>.
+  </p>
+
+  <h3 class="sub">Conceptos que no debe olvidar</h3>
+  <div class="grid-3">
+    <div class="card" style="border-top:3px solid var(--accent)">
+      <h4>1 · Snapshot &gt; Screenshot</h4>
+      <p>Los datos estructurados son el lenguaje nativo de la IA.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--amber)">
+      <h4>2 · Tokens</h4>
+      <p>Son el costo del pensamiento. Use <code>--mobile</code> para optimizarlos.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--green)">
+      <h4>3 · Persistencia</h4>
+      <p>La maleta de datos (<code>user-data-dir</code>) es lo que hace que su IA tenga memoria entre sesiones.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">Glosario para humanos</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Término</th><th>Definición</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Tokens</strong></td>
+          <td>Unidades de procesamiento de la IA. Más tokens significan más costo y más carga para la memoria del modelo.</td>
+        </tr>
+        <tr>
+          <td><strong>Accessibility Tree<br>(Árbol de Accesibilidad)</strong></td>
+          <td>Una versión simplificada de la web que describe la función de cada elemento en lugar de su apariencia.</td>
+        </tr>
+        <tr>
+          <td><strong>Headless</strong></td>
+          <td>Modo de navegación donde no se abre una ventana visible, ahorrando recursos del sistema.</td>
+        </tr>
+        <tr>
+          <td><strong>CDP Endpoint</strong></td>
+          <td>Un puente técnico que permite "enganchar" la IA a una ventana de Chrome que usted ya tiene abierta.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout example">
+    <strong>Mensaje final:</strong> ha pasado de escribir scripts rígidos a delegar objetivos en agentes capaces de
+    navegar, decidir y corregirse en tiempo real. Ese es el cambio de paradigma que introduce Playwright MCP.
+  </div>
+</section>
+
+<!-- ================= FUENTES ================= -->
+<section id="fuentes" class="section">
+  <div class="section-head">
+    <div class="icon">📚</div>
+    <div>
+      <span class="eyebrow">Referencias</span>
+      <h2>Fuentes</h2>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Repositorio oficial</h4>
+    <p style="margin-bottom:0">
+      <a href="https://github.com/microsoft/playwright-mcp" target="_blank" rel="noopener noreferrer"
+         style="color:var(--accent);word-break:break-all;text-decoration:none">
+        https://github.com/microsoft/playwright-mcp
+      </a>
+    </p>
+  </div>
+
+  <div class="callout info">
+    Este tutorial conserva íntegramente el contenido del documento fuente original. No se ha añadido
+    información externa ni se han realizado búsquedas complementarias.
+  </div>
+</section>
+
+<!-- ================= CRÉDITOS ================= -->
+<section id="creditos" class="section">
+  <div class="section-head">
+    <div class="icon">✦</div>
+    <div>
+      <span class="eyebrow">Información</span>
+      <h2>Créditos</h2>
+    </div>
+  </div>
+
+  <div class="hero-wrap" id="svgCredits" style="margin-bottom:26px"></div>
+
+  <div class="credit-card">
+    <span class="chip purple">Tutorial Educativo</span>
+    <h2 style="color:var(--white);font-size:clamp(19px,3.2vw,26px);margin-top:14px;line-height:1.3">
+      Playwright MCP<br>
+      <span style="color:var(--dim);font-size:.75em;font-weight:500">Guía de Automatización y Configuración para LLM</span>
+    </h2>
+
+    <div class="author">Rubén Sbarsky</div>
+    <div class="role">Autor y desarrollador del contenido</div>
+
+    <div class="credit-meta">
+      <div>📅 Fecha: <strong>12/09/2026</strong></div>
+      <div>🕒 Hora: <strong>08:04:15</strong></div>
+    </div>
+
+    <div class="callout info" style="text-align:left">
+      <strong>Indicación educativa:</strong> este material tiene como finalidad exclusiva la divulgación y el
+      aprendizaje de tecnologías de automatización web asistida por inteligencia artificial. Todo el contenido
+      proviene del documento fuente aportado por el usuario.
+    </div>
+
+    <div class="latin">Fiat iustitia, ruat caelum.</div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div>📚 Tutorial solo con fines Educativos y Divulgación</div>
+  <div>👨‍💻 Créditos: Rubén Sbarsky</div>
+  <div>📅 FECHA: 12/09/2026 &nbsp;·&nbsp; Hora: 08:04:15</div>
+  <div class="latin-foot">Fiat iustitia, ruat caelum.</div>
+</footer>
+
+<button id="backTop" aria-label="Volver arriba">↑</button>
+
+<!-- ================= PLANTILLA SVG ================= -->
+<script type="text/template" id="heroSvgTpl">
+<svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" class="hero-svg" role="img" aria-label="Animación: la IA se comunica con el navegador a través del servidor MCP">
+  <defs>
+    <!-- FONDO ANIMADO -->
+    <linearGradient id="bgG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#070b14">
+        <animate attributeName="stop-color" values="#070b14;#0b1730;#0e1f3d;#070b14" dur="14s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="50%" stop-color="#0a0e1a">
+        <animate attributeName="stop-color" values="#0a0e1a;#101d38;#0a1630;#0a0e1a" dur="11s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#070b14">
+        <animate attributeName="stop-color" values="#070b14;#0d1a33;#08122a;#070b14" dur="17s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+
+    <radialGradient id="vign" cx="50%" cy="50%" r="75%">
+      <stop offset="55%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.65"/>
+    </radialGradient>
+
+    <pattern id="gridP" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0 L0 0 L0 32" fill="none" stroke="#1e3a5f" stroke-width="0.7">
+        <animate attributeName="opacity" values="0.12;0.5;0.12" dur="7s" repeatCount="indefinite"/>
+      </path>
+    </pattern>
+
+    <radialGradient id="hubGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.9"/>
+      <stop offset="45%" stop-color="#00d4ff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="iaGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="navGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="laneGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="50%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+
+    <filter id="glowF" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3.2" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="bigGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="12" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- RUTAS DE FLUJO -->
+    <path id="laneTopL" d="M 164 228 C 230 190, 300 190, 342 228"/>
+    <path id="laneTopR" d="M 458 228 C 520 190, 580 190, 636 228"/>
+    <path id="laneBotL" d="M 342 278 C 300 316, 230 316, 164 278"/>
+    <path id="laneBotR" d="M 636 278 C 580 316, 520 316, 458 278"/>
+    <path id="ghostPath" d="M 164 228 C 230 190, 300 190, 342 228 C 372 248, 428 248, 458 228 C 520 190, 580 190, 636 228"/>
+  </defs>
+
+  <!-- ======= FONDO ======= -->
+  <rect width="800" height="450" fill="url(#bgG)"/>
+  <rect width="800" height="450" fill="url(#gridP)"/>
+
+  <!-- ======= ANILLOS ORBITALES ======= -->
+  <g transform="translate(400,248)" fill="none">
+    <circle r="150" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3 12" opacity="0.55">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="42s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="122" stroke="#00d4ff" stroke-width="0.7" stroke-dasharray="8 16" opacity="0.35">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="33s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-dasharray" values="8 16;18 10;8 16" dur="9s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="96" stroke="#a855f7" stroke-width="0.6" stroke-dasharray="2 9" opacity="0.45">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="24s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="176" stroke="#22c55e" stroke-width="0.5" stroke-dasharray="5 22" opacity="0.22">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="-360" dur="58s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ======= TÍTULO ======= -->
+  <text x="400" y="50" text-anchor="middle"
+        font-family="'Segoe UI',system-ui,sans-serif"
+        font-size="32" font-weight="800" letter-spacing="3.5">
+    <animate attributeName="fill" values="#00d4ff;#a855f7;#22c55e;#f59e0b;#00d4ff" dur="12s" repeatCount="indefinite"/>
+    PLAYWRIGHT MCP
+  </text>
+
+  <text x="400" y="74" text-anchor="middle"
+        font-family="'Segoe UI',system-ui,sans-serif"
+        font-size="12" font-weight="600" letter-spacing="4.5" fill="#64748b">
+    AUTOMATIZACIÓN WEB PARA AGENTES IA
+    <animate attributeName="opacity" values="0.55;1;0.55" dur="4.5s" repeatCount="indefinite"/>
+  </text>
+
+  <line x1="180" y1="90" x2="620" y2="90" stroke="#1e3a5f" stroke-width="1">
+    <animate attributeName="opacity" values="0.3;0.9;0.3" dur="6s" repeatCount="indefinite"/>
+  </line>
+
+  <!-- ======= INDICADOR LIVE ======= -->
+  <g>
+    <rect x="678" y="24" width="98" height="28" rx="14" fill="#0f172a" stroke="#ef4444" stroke-width="1">
+      <animate attributeName="stroke-opacity" values="0.35;1;0.35" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <circle cx="696" cy="38" r="5" fill="#ef4444" filter="url(#glowF)">
+      <animate attributeName="r" values="4;6.5;4" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.35;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <text x="710" y="42.5" font-family="'Segoe UI',system-ui,sans-serif" font-size="11.5" font-weight="800"
+          letter-spacing="1.5" fill="#ef4444">LIVE</text>
+  </g>
+
+  <!-- ======= NODO IZQUIERDO: IA ======= -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0 0;0 -4;0 0" dur="5.5s" repeatCount="indefinite"/>
+    <circle cx="118" cy="248" r="72" fill="url(#iaGlow)" opacity="0.85">
+      <animate attributeName="opacity" values="0.55;0.95;0.55" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="68;78;68" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <polygon points="118,200 160,224 160,272 118,296 76,272 76,224"
+             fill="rgba(168,85,247,0.10)" stroke="#a855f7" stroke-width="1.6" filter="url(#glowF)">
+      <animate attributeName="stroke-opacity" values="0.6;1;0.6" dur="3.6s" repeatCount="indefinite"/>
+    </polygon>
+    <polygon points="118,214 148,231 148,265 118,282 88,265 88,231"
+             fill="none" stroke="#a855f7" stroke-width="0.8" opacity="0.5" stroke-dasharray="4 5">
+      <animateTransform attributeName="transform" type="rotate" from="0 118 248" to="360 118 248" dur="18s" repeatCount="indefinite"/>
+    </polygon>
+    <circle cx="118" cy="248" r="20" fill="#0f172a" stroke="#a855f7" stroke-width="1.4"/>
+    <text x="118" y="253" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif"
+          font-size="14" font-weight="800" fill="#a855f7">IA</text>
+    <text x="118" y="320" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif"
+          font-size="11" font-weight="700" letter-spacing="2" fill="#94a3b8">LLM</text>
+
+    <circle cx="118" cy="248" r="52" fill="none" stroke="#a855f7" stroke-width="0.7"
+            stroke-dasharray="6 14" opacity="0.55">
+      <animateTransform attributeName="transform" type="rotate" from="0 118 248" to="360 118 248" dur="13s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ======= NODO CENTRAL: MCP ======= -->
+  <g>
+    <circle cx="400" cy="248" r="86" fill="url(#hubGlow)">
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="80;94;80" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="400" cy="248" r="58" fill="#0f172a" stroke="#00d4ff" stroke-width="2" filter="url(#glowF)">
+      <animate attributeName="stroke-opacity" values="0.7;1;0.7" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="400" cy="248" r="46" fill="none" stroke="#00d4ff" stroke-width="0.9"
+            stroke-dasharray="10 8" opacity="0.8">
+      <animateTransform attributeName="transform" type="rotate" from="0 400 248" to="360 400 248" dur="9s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-dasharray" values="10 8;24 6;10 8" dur="6s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="400" cy="248" r="66" fill="none" stroke="#22c55e" stroke-width="0.6"
+            stroke-dasharray="3 12" opacity="0.7">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="15s" repeatCount="indefinite"/>
+    </circle>
+    <text x="400" y="254" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif"
+          font-size="19" font-weight="800" letter-spacing="2">
+      <animate attributeName="fill" values="#00d4ff;#22c55e;#00d4ff" dur="7s" repeatCount="indefinite"/>
+      MCP
+    </text>
+    <text x="400" y="330" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif"
+          font-size="11" font-weight="700" letter-spacing="2" fill="#94a3b8">SERVIDOR</text>
+  </g>
+
+  <!-- ======= NODO DERECHO: NAVEGADOR ======= -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0 0;0 -3;0 0" dur="6.5s" repeatCount="indefinite"/>
+    <circle cx="682" cy="248" r="72" fill="url(#navGlow)" opacity="0.85">
+      <animate attributeName="opacity" values="0.5;0.95;0.5" dur="4.8s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="68;78;68" dur="4.8s" repeatCount="indefinite"/>
+    </circle>
+    <rect x="634" y="204" width="96" height="74" rx="9" fill="rgba(34,197,94,0.08)"
+          stroke="#22c55e" stroke-width="1.6" filter="url(#glowF)">
+      <animate attributeName="stroke-opacity" values="0.65;1;0.65" dur="3.2s" repeatCount="indefinite"/>
+    </rect>
+    <line x1="634" y1="222" x2="730" y2="222" stroke="#22c55e" stroke-width="1" opacity="0.7"/>
+    <circle cx="644" cy="213" r="2.6" fill="#ef4444"/>
+    <circle cx="653" cy="213" r="2.6" fill="#f59e0b"/>
+    <circle cx="662" cy="213" r="2.6" fill="#22c55e"/>
+    <rect x="644" y="232" width="52" height="5" rx="2.5" fill="#22c55e" opacity="0.55">
+      <animate attributeName="opacity" values="0.25;0.8;0.25" dur="3.5s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="644" y="243" width="72" height="5" rx="2.5" fill="#00d4ff" opacity="0.45">
+      <animate attributeName="opacity" values="0.7;0.2;0.7" dur="4.2s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="644" y="254" width="40" height="5" rx="2.5" fill="#a855f7" opacity="0.5">
+      <animate attributeName="opacity" values="0.3;0.85;0.3" dur="5.1s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="644" y="265" width="60" height="5" rx="2.5" fill="#22c55e" opacity="0.4">
+      <animate attributeName="opacity" values="0.8;0.25;0.8" dur="2.9s" repeatCount="indefinite"/>
+    </rect>
+    <circle cx="682" cy="248" r="52" fill="none" stroke="#22c55e" stroke-width="0.7"
+            stroke-dasharray="7 13" opacity="0.5">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="11s" repeatCount="indefinite"/>
+    </circle>
+    <text x="682" y="320" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif"
+          font-size="11" font-weight="700" letter-spacing="2" fill="#94a3b8">DOM / WEB</text>
+  </g>
+
+  <!-- ======= RUTAS DE FLUJO ======= -->
+  <g fill="none" stroke="url(#laneGrad)" stroke-width="1.6" stroke-linecap="round">
+    <use href="#laneTopL"/>
+    <use href="#laneTopR"/>
+    <use href="#laneBotL"/>
+    <use href="#laneBotR"/>
+  </g>
+
+  <g fill="none" stroke="#00d4ff" stroke-width="1.8" stroke-dasharray="6 12" opacity="0.9" filter="url(#glowF)">
+    <use href="#laneTopL">
+      <animate attributeName="stroke-dashoffset" from="0" to="-72" dur="2.4s" repeatCount="indefinite"/>
+    </use>
+    <use href="#laneTopR">
+      <animate attributeName="stroke-dashoffset" from="0" to="-72" dur="2.8s" repeatCount="indefinite"/>
+    </use>
+  </g>
+
+  <g fill="none" stroke="#22c55e" stroke-width="1.6" stroke-dasharray="5 12" opacity="0.85" filter="url(#glowF)">
+    <use href="#laneBotL">
+      <animate attributeName="stroke-dashoffset" from="0" to="68" dur="3.1s" repeatCount="indefinite"/>
+    </use>
+    <use href="#laneBotR">
+      <animate attributeName="stroke-dashoffset" from="0" to="68" dur="3.6s" repeatCount="indefinite"/>
+    </use>
+  </g>
+
+  <!-- ======= PARTÍCULAS VIAJERAS ======= -->
+  <g filter="url(#glowF)">
+    <circle r="3.2" fill="#a855f7">
+      <animateMotion dur="2.6s" begin="0s" repeatCount="indefinite">
+        <mpath href="#laneTopL"/>
+      </animateMotion>
+      <animate attributeName="opacity" values="0;1;1;0" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="2.6" fill="#00d4ff">
+      <animateMotion dur="2.6s" begin="0.9s" repeatCount="indefinite">
+        <mpath href="#laneTopL"/>
+      </animateMotion>
+      <animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0.9s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="3.4" fill="#00d4ff">
+      <animateMotion dur="3s" begin="0.3s" repeatCount="indefinite">
+        <mpath href="#laneTopR"/>
+      </animateMotion>
+      <animate attributeName="opacity" values="0;1;1;0" dur="3s" begin="0.3s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="2.4" fill="#22c55e">
+      <animateMotion dur="3.4s" begin="1.4s" repeatCount="indefinite">
+        <mpath href="#laneTopR"/>
+      </animateMotion>
+      <animate attributeName="opacity" values="0;1;1;0" dur="3.4s" begin="1.4s" repeatCount="indefinite"/>
+    </circle>
+
+    <circle r="2.8" fill="#22c55e">
+      <animateMotion dur="3.3s" begin="0.2s" repeatCount="indefinite">
+        <mpath href="#laneBotR"/>
+      </animateMotion>
+      <animate attributeName="opacity" values="0;1;1;0" dur="3.3s" begin="0.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="3" fill="#00d4ff">
+      <animateMotion dur="3.8s" begin="1.1s" repeatCount="indefinite">
+        <mpath href="#laneBotL"/>
+      </animateMotion>
+      <animate attributeName="opacity" values="0;1;1;0" dur="3.8s" begin="1.1s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="2.2" fill="#a855f7">
+      <animateMotion dur="3.8s" begin="2.3s" repeatCount="indefinite">
+        <mpath href="#laneBotL"/>
+      </animateMotion>
+      <animate attributeName="opacity" values="0;1;1;0" dur="3.8s" begin="2.3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ======= GHOST ELEMENTS ======= -->
+  <g opacity="0">
+    <rect x="-13" y="-9" width="26" height="18" rx="5" fill="none" stroke="#00d4ff" stroke-width="1.4" filter="url(#glowF)"/>
+    <circle r="3" fill="#00d4ff"/>
+    <animateMotion dur="6.5s" begin="0s" repeatCount="indefinite" rotate="auto">
+      <mpath href="#ghostPath"/>
+    </animateMotion>
+    <animate attributeName="opacity" values="0;0.85;0.85;0.85;0" dur="6.5s" repeatCount="indefinite"/>
+  </g>
+
+  <g opacity="0">
+    <rect x="-11" y="-8" width="22" height="16" rx="4" fill="none" stroke="#22c55e" stroke-width="1.3" filter="url(#glowF)"/>
+    <circle r="2.6" fill="#22c55e"/>
+    <animateMotion dur="7.5s" begin="2.4s" repeatCount="indefinite" rotate="auto">
+      <mpath href="#ghostPath"/>
+    </animateMotion>
+    <animate attributeName="opacity" values="0;0.75;0.75;0.75;0" dur="7.5s" begin="2.4s" repeatCount="indefinite"/>
+  </g>
+
+  <g opacity="0">
+    <rect x="-9" y="-7" width="18" height="14" rx="4" fill="none" stroke="#f59e0b" stroke-width="1.2" filter="url(#glowF)"/>
+    <circle r="2.2" fill="#f59e0b"/>
+    <animateMotion dur="8.5s" begin="4.6s" repeatCount="indefinite" rotate="auto">
+      <mpath href="#ghostPath"/>
+    </animateMotion>
+    <animate attributeName="opacity" values="0;0.65;0.65;0.65;0" dur="8.5s" begin="4.6s" repeatCount="indefinite"/>
+  </g>
+
+  <!-- ======= EXPLOSIÓN RADIAL EN EL HUB ======= -->
+  <g transform="translate(400,248)" stroke="#00d4ff" stroke-width="1.6" stroke-linecap="round">
+    <line x1="0" y1="0" x2="0" y2="0" opacity="0">
+      <animate attributeName="x2" values="0;78;78" dur="3.6s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="0;-40;-40" dur="3.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.9;0" dur="3.6s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="0" x2="0" y2="0" opacity="0">
+      <animate attributeName="x2" values="0;-82;-82" dur="3.6s" begin="0.6s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="0;46;46" dur="3.6s" begin="0.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.9;0" dur="3.6s" begin="0.6s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="0" x2="0" y2="0" opacity="0" stroke="#a855f7">
+      <animate attributeName="x2" values="0;-70;-70" dur="4.1s" begin="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="0;-52;-52" dur="4.1s" begin="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.85;0" dur="4.1s" begin="1.2s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="0" x2="0" y2="0" opacity="0" stroke="#22c55e">
+      <animate attributeName="x2" values="0;86;86" dur="4.1s" begin="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="0;34;34" dur="4.1s" begin="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.85;0" dur="4.1s" begin="1.8s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="0" x2="0" y2="0" opacity="0" stroke="#f59e0b">
+      <animate attributeName="x2" values="0;64;64" dur="4.6s" begin="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="0;62;62" dur="4.6s" begin="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.8;0" dur="4.6s" begin="2.6s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="0" x2="0" y2="0" opacity="0" stroke="#a855f7">
+      <animate attributeName="x2" values="0;-58;-58" dur="4.6s" begin="3.2s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="0;-66;-66" dur="4.6s" begin="3.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.8;0" dur="4.6s" begin="3.2s" repeatCount="indefinite"/>
+    </line>
+  </g>
+
+  <!-- ======= HALO PULSANTE DEL HUB ======= -->
+  <circle cx="400" cy="248" r="58" fill="none" stroke="#00d4ff" stroke-width="1.2" opacity="0">
+    <animate attributeName="r" values="58;120;120" dur="3.4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.7;0;0" dur="3.4s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-width" values="1.6;0.2;0.2" dur="3.4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="400" cy="248" r="58" fill="none" stroke="#22c55e" stroke-width="1.2" opacity="0">
+    <animate attributeName="r" values="58;120;120" dur="3.4s" begin="1.7s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.6;0;0" dur="3.4s" begin="1.7s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-width" values="1.6;0.2;0.2" dur="3.4s" begin="1.7s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ======= ETIQUETAS DE ESTADO ======= -->
+  <g font-family="'Segoe UI',system-ui,sans-serif" font-size="12" font-weight="700" letter-spacing="2.5" text-anchor="middle">
+    <text x="400" y="382" fill="#00d4ff">
+      LEYENDO ÁRBOL DE ACCESIBILIDAD
+      <animate attributeName="opacity" values="0;1;1;0;0" dur="9s" repeatCount="indefinite"/>
+    </text>
+    <text x="400" y="382" fill="#22c55e">
+      EJECUTANDO ACCIÓN EN EL DOM
+      <animate attributeName="opacity" values="0;0;1;1;0" dur="9s" repeatCount="indefinite"/>
+    </text>
+    <text x="400" y="382" fill="#f59e0b">
+      SNAPSHOT DETERMINISTA · OK
+      <animate attributeName="opacity" values="0;0;0;1;0" dur="9s" repeatCount="indefinite"/>
+    </text>
+  </g>
+
+  <!-- ======= FLASH CULMINANTE ======= -->
+  <g text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif">
+    <text x="400" y="412" font-size="18" font-weight="900" letter-spacing="6" fill="#ffffff" opacity="0">
+      AGENTE ACTIVO
+      <animate attributeName="opacity" values="0;0;0;0.95;0.95;0" dur="9s" repeatCount="indefinite"/>
+      <animate attributeName="letter-spacing" values="6;12;6" dur="9s" repeatCount="indefinite"/>
+      <animate attributeName="fill" values="#00d4ff;#a855f7;#22c55e;#f59e0b;#00d4ff" dur="9s" repeatCount="indefinite"/>
+    </text>
+  </g>
+
+  <!-- ======= FIRMA ======= -->
+  <text x="400" y="438" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif"
+        font-size="10.5" letter-spacing="3" fill="#475569">
+    RUBÉN SBARSKY · 2026
+    <animate attributeName="opacity" values="0.35;0.9;0.35" dur="6.5s" repeatCount="indefinite"/>
+  </text>
+
+  <!-- ======= VIÑETA ======= -->
+  <rect width="800" height="450" fill="url(#vign)" pointer-events="none"/>
+</svg>
+</script>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- INYECCIÓN DEL SVG ---------- */
+  var tpl = document.getElementById('heroSvgTpl');
+  var markup = tpl ? tpl.innerHTML : '';
+  var homeBox = document.getElementById('svgHome');
+  var credBox = document.getElementById('svgCredits');
+  if(homeBox) homeBox.innerHTML = markup;
+  if(credBox) credBox.innerHTML = markup;
+
+  /* ---------- NAVEGACIÓN SPA ---------- */
+  var navBtns = document.querySelectorAll('.nav-btn');
+  var sections = document.querySelectorAll('.section');
+
+  function showSection(id){
+    sections.forEach(function(s){
+      s.classList.toggle('active', s.id === id);
+    });
+    navBtns.forEach(function(b){
+      b.classList.toggle('active', b.dataset.target === id);
+    });
+    window.scrollTo({top:0, behavior:'auto'});
+    updateProgress();
+    if(id === 'creditos'){
+      var svg = credBox ? credBox.querySelector('svg') : null;
+      if(svg && svg.setCurrentTime){ try{ svg.setCurrentTime(0); }catch(e){} }
+    }
+  }
+
+  navBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      showSection(btn.dataset.target);
+    });
+  });
+
+  /* ---------- BARRA DE PROGRESO ---------- */
+  var fill = document.getElementById('progressFill');
+  function updateProgress(){
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var p = h > 0 ? (window.scrollY / h) * 100 : 0;
+    if(p < 0) p = 0;
+    if(p > 100) p = 100;
+    fill.style.width = p + '%';
+  }
+
+  /* ---------- BOTÓN VOLVER ARRIBA ---------- */
+  var backTop = document.getElementById('backTop');
+  function onScroll(){
+    updateProgress();
+    if(window.scrollY > 300){ backTop.classList.add('show'); }
+    else { backTop.classList.remove('show'); }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  backTop.addEventListener('click', function(){
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  /* ---------- ACORDEONES ---------- */
+  document.querySelectorAll('.acc-head').forEach(function(head){
+    head.addEventListener('click', function(){
+      var acc = document.getElementById(head.dataset.acc);
+      if(acc) acc.classList.toggle('open');
+    });
+  });
+
+  /* ---------- INICIALIZACIÓN ---------- */
+  updateProgress();
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
